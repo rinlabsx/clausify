@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Clausify — AI Contract Reviewer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg: #f8f8f7;
+  --surface: #ffffff;
+  --surface2: #f2f2f0;
+  --surface3: #eaeae7;
+  --ink: #141412;
+  --ink2: #4a4a46;
+  --ink3: #9a9a94;
+  --border: rgba(20,20,18,0.08);
+  --border2: rgba(20,20,18,0.14);
+  --red: #c0392b;
+  --red-bg: #fdf2f1;
+  --red-border: rgba(192,57,43,0.15);
+  --amber: #b7620a;
+  --amber-bg: #fdf6ed;
+  --amber-border: rgba(183,98,10,0.15);
+  --green: #276843;
+  --green-bg: #f0f7f3;
+  --green-border: rgba(39,104,67,0.15);
+  --blue: #1a5fa8;
+  --blue-bg: #f0f6fd;
+  --blue-border: rgba(26,95,168,0.15);
+  --mono: 'IBM Plex Mono', monospace;
+  --sans: 'IBM Plex Sans', sans-serif;
+  --radius: 6px;
+  --radius-lg: 10px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--sans);
+  background: var(--bg);
+  color: var(--ink);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 0 40px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.logo-mark {
+  width: 28px; height: 28px;
+  background: var(--ink);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.logo-mark svg {
+  width: 14px; height: 14px;
+  stroke: white;
+  fill: none;
+  stroke-width: 1.5;
+}
+
+.logo-name {
+  font-family: var(--mono);
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+.logo-tag {
+  font-size: 11px;
+  color: var(--ink3);
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-family: var(--mono);
+  letter-spacing: 0.02em;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.key-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--ink3);
+  font-family: var(--mono);
+}
+
+.key-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--surface3);
+}
+.key-dot.ok { background: var(--green); }
+
+.main {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 40px;
+  display: grid;
+  grid-template-columns: 380px minmax(0,1fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.panel-head {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.panel-title {
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink3);
+  font-family: var(--mono);
+}
+
+.panel-body { padding: 20px; }
+
+.sec-label {
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--ink3);
+  font-family: var(--mono);
+  margin-bottom: 8px;
+}
+
+.key-wrap { position: relative; margin-bottom: 6px; }
+.key-wrap input {
+  width: 100%;
+  height: 38px;
+  padding: 0 38px 0 10px;
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  background: var(--surface);
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--ink);
+  outline: none;
+  transition: border-color 0.15s;
+}
+.key-wrap input:focus { border-color: var(--ink); }
+.eye-btn {
+  position: absolute; right: 10px; top: 50%;
+  transform: translateY(-50%);
+  background: none; border: none;
+  font-size: 11px; color: var(--ink3);
+  cursor: pointer; font-family: var(--sans);
+}
+
+.key-hint { font-size: 11px; color: var(--ink3); line-height: 1.5; margin-bottom: 16px; }
+.key-hint a { color: var(--blue); text-decoration: none; }
+
+.divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+
+.input-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.itab {
+  flex: 1;
+  padding: 7px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: transparent;
+  font-size: 12px;
+  font-family: var(--sans);
+  color: var(--ink3);
+  cursor: pointer;
+  transition: all 0.15s;
+  text-align: center;
+}
+.itab.active {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: white;
+}
+
+.text-input-wrap { display: block; }
+.pdf-input-wrap { display: none; }
+
+textarea {
+  width: 100%;
+  height: 220px;
+  resize: vertical;
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  padding: 12px;
+  font-size: 12px;
+  font-family: var(--mono);
+  color: var(--ink);
+  background: var(--surface);
+  line-height: 1.6;
+  outline: none;
+  transition: border-color 0.15s;
+}
+textarea:focus { border-color: var(--ink); }
+
+.pdf-drop {
+  border: 1.5px dashed var(--border2);
+  border-radius: var(--radius);
+  padding: 32px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.15s;
+  background: var(--surface2);
+}
+.pdf-drop:hover { border-color: var(--ink2); background: var(--surface); }
+.pdf-drop.dragover { border-color: var(--blue); background: var(--blue-bg); }
+
+.pdf-drop-icon {
+  width: 36px; height: 36px;
+  background: var(--surface3);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 12px;
+}
+.pdf-drop-icon svg { width: 18px; height: 18px; stroke: var(--ink3); fill: none; stroke-width: 1.5; }
+
+.pdf-drop-title { font-size: 13px; font-weight: 500; color: var(--ink2); margin-bottom: 4px; }
+.pdf-drop-sub { font-size: 12px; color: var(--ink3); }
+.pdf-drop input { display: none; }
+
+.pdf-loaded {
+  display: none;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  background: var(--green-bg);
+  border: 1px solid var(--green-border);
+  border-radius: var(--radius);
+}
+.pdf-loaded-icon { font-size: 20px; }
+.pdf-loaded-name { font-size: 13px; font-weight: 500; color: var(--green); font-family: var(--mono); }
+.pdf-loaded-size { font-size: 11px; color: var(--ink3); }
+.pdf-loaded-remove { margin-left: auto; background: none; border: none; cursor: pointer; color: var(--ink3); font-size: 16px; }
+
+.analyze-btn {
+  width: 100%;
+  height: 44px;
+  background: var(--ink);
+  color: white;
+  border: none;
+  border-radius: var(--radius);
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  margin-top: 14px;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.analyze-btn:hover { background: #2a2a26; }
+.analyze-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.disclaimer {
+  font-size: 11px;
+  color: var(--ink3);
+  line-height: 1.55;
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: var(--surface2);
+  border-radius: var(--radius);
+  border-left: 2px solid var(--amber);
+}
+
+.results-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.empty-results {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 60px 40px;
+  text-align: center;
+}
+
+.empty-icon {
+  width: 48px; height: 48px;
+  background: var(--surface2);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+}
+.empty-icon svg { width: 22px; height: 22px; stroke: var(--ink3); fill: none; stroke-width: 1.5; }
+.empty-title { font-size: 14px; font-weight: 500; color: var(--ink2); margin-bottom: 6px; }
+.empty-sub { font-size: 13px; color: var(--ink3); line-height: 1.6; max-width: 280px; margin: 0 auto; }
+
+.loading-panel {
+  display: none;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 48px;
+  text-align: center;
+}
+
+.loading-spinner {
+  width: 28px; height: 28px;
+  border: 2px solid var(--border2);
+  border-top-color: var(--ink);
+  border-radius: 50%;
+  animation: spin 0.75s linear infinite;
+  margin: 0 auto 16px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.loading-text { font-size: 13px; color: var(--ink3); font-family: var(--mono); }
+.loading-sub { font-size: 12px; color: var(--ink3); margin-top: 6px; opacity: 0.6; }
+
+.result-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  animation: fadeUp 0.4s ease both;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.result-card:nth-child(2) { animation-delay: 0.05s; }
+.result-card:nth-child(3) { animation-delay: 0.10s; }
+.result-card:nth-child(4) { animation-delay: 0.15s; }
+.result-card:nth-child(5) { animation-delay: 0.20s; }
+
+.card-head {
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.card-icon {
+  width: 28px; height: 28px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.card-icon svg { width: 13px; height: 13px; fill: none; stroke-width: 1.8; }
+
+.card-title { font-size: 13px; font-weight: 500; color: var(--ink); }
+.card-sub { font-size: 11px; color: var(--ink3); margin-top: 1px; font-family: var(--mono); }
+
+.card-body { padding: 18px 20px; }
+
+.risk-item {
+  display: flex;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  margin-bottom: 8px;
+  border: 1px solid transparent;
+}
+.risk-item:last-child { margin-bottom: 0; }
+.risk-item.high { background: var(--red-bg); border-color: var(--red-border); }
+.risk-item.medium { background: var(--amber-bg); border-color: var(--amber-border); }
+.risk-item.low { background: var(--green-bg); border-color: var(--green-border); }
+
+.risk-badge {
+  font-size: 10px;
+  font-weight: 500;
+  font-family: var(--mono);
+  padding: 2px 7px;
+  border-radius: 3px;
+  white-space: nowrap;
+  height: fit-content;
+  margin-top: 1px;
+}
+.risk-item.high .risk-badge { background: var(--red); color: white; }
+.risk-item.medium .risk-badge { background: var(--amber); color: white; }
+.risk-item.low .risk-badge { background: var(--green); color: white; }
+
+.risk-text { font-size: 13px; color: var(--ink2); line-height: 1.55; }
+.risk-clause { font-size: 11px; color: var(--ink3); margin-top: 3px; font-family: var(--mono); }
+
+.term-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+  gap: 16px;
+}
+.term-item:last-child { border-bottom: none; }
+.term-key { font-size: 12px; color: var(--ink3); font-family: var(--mono); white-space: nowrap; }
+.term-val { font-size: 13px; color: var(--ink); text-align: right; line-height: 1.45; }
+
+.summary-text {
+  font-size: 13px;
+  color: var(--ink2);
+  line-height: 1.75;
+}
+
+.obligation-item {
+  display: flex;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+.obligation-item:last-child { border-bottom: none; }
+.obligation-party {
+  font-size: 11px;
+  font-family: var(--mono);
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 3px;
+  height: fit-content;
+  white-space: nowrap;
+  margin-top: 1px;
+}
+.party-a { background: var(--blue-bg); color: var(--blue); border: 1px solid var(--blue-border); }
+.party-b { background: var(--surface2); color: var(--ink2); border: 1px solid var(--border); }
+.obligation-text { font-size: 13px; color: var(--ink2); line-height: 1.5; }
+
+.missing-item {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 10px 12px;
+  background: var(--amber-bg);
+  border: 1px solid var(--amber-border);
+  border-radius: var(--radius);
+  margin-bottom: 8px;
+}
+.missing-item:last-child { margin-bottom: 0; }
+.missing-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--amber); margin-top: 5px; flex-shrink: 0; }
+.missing-text { font-size: 13px; color: var(--ink2); line-height: 1.5; }
+.missing-why { font-size: 11px; color: var(--amber); margin-top: 2px; }
+
+.err-banner {
+  display: none;
+  padding: 12px 16px;
+  background: var(--red-bg);
+  border: 1px solid var(--red-border);
+  border-radius: var(--radius-lg);
+  font-size: 13px;
+  color: var(--red);
+  line-height: 1.5;
+}
+
+@media (max-width: 860px) {
+  .main { grid-template-columns: 1fr; padding: 20px; }
+  header { padding: 0 20px; }
+  .logo-tag { display: none; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-mark">
+      <svg viewBox="0 0 14 14"><path d="M2 3h10M2 7h7M2 11h5"/></svg>
+    </div>
+    <div class="logo-name">clausify</div>
+    <div class="logo-tag">beta</div>
+  </div>
+  <div class="header-right">
+    <div class="key-indicator">
+      <div class="key-dot" id="keyDot"></div>
+      <span id="keyTxt">no key</span>
+    </div>
+  </div>
+</header>
+
+<div class="main">
+  <div>
+    <div class="panel">
+      <div class="panel-head">
+        <div class="panel-title">Configuration</div>
+      </div>
+      <div class="panel-body">
+        <div class="sec-label">Anthropic API key</div>
+        <div class="key-wrap">
+          <input type="password" id="apiKey" placeholder="sk-ant-..." oninput="onKey()"/>
+          <button class="eye-btn" id="eyeBtn" onclick="toggleEye()">show</button>
+        </div>
+        <div class="key-hint">Browser-only. <a href="https://console.anthropic.com/settings/keys" target="_blank">Get an API key →</a></div>
+
+        <hr class="divider"/>
+
+        <div class="sec-label" style="margin-bottom:10px;">Input method</div>
+        <div class="input-tabs">
+          <button class="itab active" onclick="switchTab('text', this)">Paste text</button>
+          <button class="itab" onclick="switchTab('pdf', this)">Upload PDF</button>
+        </div>
+
+        <div class="text-input-wrap" id="textWrap">
+          <textarea id="contractText" placeholder="Paste your contract text here...
+
+Example: service agreements, NDAs, employment contracts, freelance agreements, SaaS terms..."></textarea>
+        </div>
+
+        <div class="pdf-input-wrap" id="pdfWrap">
+          <div class="pdf-drop" id="pdfDrop" onclick="document.getElementById('pdfFile').click()" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)">
+            <div class="pdf-drop-icon">
+              <svg viewBox="0 0 18 18"><path d="M10 2H4a1 1 0 00-1 1v12a1 1 0 001 1h10a1 1 0 001-1V7l-5-5z"/><path d="M10 2v5h5"/></svg>
+            </div>
+            <div class="pdf-drop-title">Drop PDF here or click to browse</div>
+            <div class="pdf-drop-sub">Supports .pdf files up to 10MB</div>
+            <input type="file" id="pdfFile" accept=".pdf" onchange="onPdfSelect(event)"/>
+          </div>
+          <div class="pdf-loaded" id="pdfLoaded">
+            <div class="pdf-loaded-icon">📄</div>
+            <div>
+              <div class="pdf-loaded-name" id="pdfName">document.pdf</div>
+              <div class="pdf-loaded-size" id="pdfSize">0 KB</div>
+            </div>
+            <button class="pdf-loaded-remove" onclick="removePdf()">×</button>
+          </div>
+        </div>
+
+        <button class="analyze-btn" id="analyzeBtn" onclick="analyze()">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="5"/><path d="M7 4v3.5l2 1.5"/></svg>
+          Analyze contract
+        </button>
+
+        <div class="disclaimer">
+          For informational purposes only. Not legal advice. Always consult a qualified lawyer for binding decisions.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="results-panel" id="resultsPanel">
+    <div class="empty-results" id="emptyState">
+      <div class="empty-icon">
+        <svg viewBox="0 0 22 22"><path d="M13 2H6a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V9l-5-5z"/><path d="M13 2v5h5M9 13h4M9 10h2"/></svg>
+      </div>
+      <div class="empty-title">No contract analyzed yet</div>
+      <div class="empty-sub">Paste contract text or upload a PDF, then hit Analyze to get a full breakdown.</div>
+    </div>
+
+    <div class="loading-panel" id="loadingState">
+      <div class="loading-spinner"></div>
+      <div class="loading-text">Analyzing contract...</div>
+      <div class="loading-sub" id="loadingSub">Extracting key terms</div>
+    </div>
+
+    <div class="err-banner" id="errBanner"></div>
+    <div id="resultCards"></div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+let eyeShown = false;
+let pdfBase64 = null;
+let pdfText = null;
+let activeTab = 'text';
+
+const loadingMessages = [
+  'Extracting key terms',
+  'Flagging risk clauses',
+  'Summarizing obligations',
+  'Checking for missing clauses',
+  'Composing report'
+];
+
+function toggleEye() {
+  eyeShown = !eyeShown;
+  document.getElementById('apiKey').type = eyeShown ? 'text' : 'password';
+  document.getElementById('eyeBtn').textContent = eyeShown ? 'hide' : 'show';
+}
+
+function onKey() {
+  const v = document.getElementById('apiKey').value.trim();
+  const ok = v.startsWith('sk-ant-') && v.length > 20;
+  document.getElementById('keyDot').className = 'key-dot' + (ok ? ' ok' : '');
+  document.getElementById('keyTxt').textContent = ok ? 'key set' : 'no key';
+}
+
+function switchTab(tab, btn) {
+  activeTab = tab;
+  document.querySelectorAll('.itab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('textWrap').style.display = tab === 'text' ? 'block' : 'none';
+  document.getElementById('pdfWrap').style.display = tab === 'pdf' ? 'block' : 'none';
+}
+
+function onDragOver(e) {
+  e.preventDefault();
+  document.getElementById('pdfDrop').classList.add('dragover');
+}
+
+function onDragLeave(e) {
+  document.getElementById('pdfDrop').classList.remove('dragover');
+}
+
+function onDrop(e) {
+  e.preventDefault();
+  document.getElementById('pdfDrop').classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (file && file.type === 'application/pdf') loadPdf(file);
+}
+
+function onPdfSelect(e) {
+  const file = e.target.files[0];
+  if (file) loadPdf(file);
+}
+
+function loadPdf(file) {
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    pdfBase64 = e.target.result.split(',')[1];
+    const typedArray = new Uint8Array(atob(pdfBase64).split('').map(c => c.charCodeAt(0)));
+    const pdf = await pdfjsLib.getDocument(typedArray).promise;
+    let text = '';
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      text += content.items.map(item => item.str).join(' ') + '\n';
+    }
+    pdfText = text;
+    document.getElementById('pdfDrop').style.display = 'none';
+    const loaded = document.getElementById('pdfLoaded');
+    loaded.style.display = 'flex';
+    document.getElementById('pdfName').textContent = file.name;
+    document.getElementById('pdfSize').textContent = (file.size / 1024).toFixed(0) + ' KB';
+  };
+  reader.readAsDataURL(file);
+}
+
+function removePdf() {
+  pdfBase64 = null;
+  pdfText = null;
+  document.getElementById('pdfDrop').style.display = 'block';
+  document.getElementById('pdfLoaded').style.display = 'none';
+  document.getElementById('pdfFile').value = '';
+}
+
+function showErr(msg) {
+  const el = document.getElementById('errBanner');
+  el.textContent = msg;
+  el.style.display = 'block';
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('loadingState').style.display = 'none';
+  document.getElementById('resultCards').innerHTML = '';
+}
+
+async function analyze() {
+  const key = document.getElementById('apiKey').value.trim();
+  const text = activeTab === 'text'
+    ? document.getElementById('contractText').value.trim()
+    : pdfText;
+
+  if (!key || !key.startsWith('sk-ant-')) { showErr('Please enter a valid Anthropic API key.'); return; }
+  if (!text || text.length < 50) { showErr(activeTab === 'pdf' ? 'Please upload a PDF first.' : 'Please paste contract text (minimum 50 characters).'); return; }
+
+  const btn = document.getElementById('analyzeBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<div style="width:14px;height:14px;border:1.5px solid rgba(255,255,255,0.3);border-top-color:white;border-radius:50%;animation:spin 0.75s linear infinite"></div> Analyzing...';
+
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('errBanner').style.display = 'none';
+  document.getElementById('resultCards').innerHTML = '';
+  document.getElementById('loadingState').style.display = 'block';
+
+  let msgIdx = 0;
+  const msgInterval = setInterval(() => {
+    msgIdx = (msgIdx + 1) % loadingMessages.length;
+    document.getElementById('loadingSub').textContent = loadingMessages[msgIdx];
+  }, 1800);
+
+  const prompt = `You are a legal analyst AI. Analyze the following contract and respond ONLY with a valid JSON object. No markdown, no backticks, no explanation.
+
+Contract text:
+${text.slice(0, 8000)}
+
+Return exactly this JSON structure:
+{
+  "summary": "3-4 sentence plain-language summary of what this contract is about, who the parties are, and its main purpose.",
+  "key_terms": [
+    { "key": "term name", "value": "term value or description" }
+  ],
+  "risks": [
+    { "level": "high|medium|low", "description": "risk description", "clause": "relevant clause reference or quote (max 10 words)" }
+  ],
+  "obligations": [
+    { "party": "Party A name or role", "obligation": "what they must do", "is_primary": true },
+    { "party": "Party B name or role", "obligation": "what they must do", "is_primary": false }
+  ],
+  "missing_clauses": [
+    { "clause": "missing clause name", "reason": "why this clause is typically important" }
+  ]
+}
+
+Rules:
+- key_terms: 5-8 most important terms (dates, amounts, durations, penalties, IP ownership, etc.)
+- risks: 3-6 risks ordered high to low
+- obligations: 4-8 total obligations split between parties
+- missing_clauses: 2-5 clauses that are absent but typically expected in this type of contract
+- Be specific and reference actual content from the contract`;
+
+  try {
+    const messages = activeTab === 'pdf' && pdfBase64 ? [{
+      role: 'user',
+      content: [
+        { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: pdfBase64 } },
+        { type: 'text', text: prompt }
+      ]
+    }] : [{ role: 'user', content: prompt }];
+
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 2000, messages })
+    });
+
+    if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e?.error?.message || `API error ${res.status}`); }
+
+    const json = await res.json();
+    const raw = json.content.map(b => b.text || '').join('');
+    const result = JSON.parse(raw.replace(/```json|```/g, '').trim());
+
+    clearInterval(msgInterval);
+    document.getElementById('loadingState').style.display = 'none';
+    renderResults(result);
+  } catch (e) {
+    clearInterval(msgInterval);
+    showErr(e.message);
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="5"/><path d="M7 4v3.5l2 1.5"/></svg> Analyze contract';
+}
+
+function renderResults(r) {
+  const container = document.getElementById('resultCards');
+
+  const riskColors = { high: 'var(--red)', medium: 'var(--amber)', low: 'var(--green)' };
+  const riskBgs = { high: 'var(--red-bg)', medium: 'var(--amber-bg)', low: 'var(--green-bg)' };
+
+  container.innerHTML = `
+    <div class="result-card">
+      <div class="card-head">
+        <div class="card-icon" style="background:var(--blue-bg)">
+          <svg viewBox="0 0 13 13" stroke="var(--blue)"><path d="M2 2h9M2 5.5h6M2 9h4"/></svg>
+        </div>
+        <div><div class="card-title">Plain-language summary</div><div class="card-sub">Overview of this contract</div></div>
+      </div>
+      <div class="card-body"><div class="summary-text">${r.summary || ''}</div></div>
+    </div>
+
+    <div class="result-card">
+      <div class="card-head">
+        <div class="card-icon" style="background:var(--surface2)">
+          <svg viewBox="0 0 13 13" stroke="var(--ink2)"><rect x="1.5" y="1.5" width="10" height="10" rx="1.5"/><path d="M4 6.5h5M4 4.5h3"/></svg>
+        </div>
+        <div><div class="card-title">Key terms</div><div class="card-sub">${(r.key_terms||[]).length} terms extracted</div></div>
+      </div>
+      <div class="card-body">
+        ${(r.key_terms||[]).map(t => `
+          <div class="term-item">
+            <div class="term-key">${t.key}</div>
+            <div class="term-val">${t.value}</div>
+          </div>`).join('')}
+      </div>
+    </div>
+
+    <div class="result-card">
+      <div class="card-head">
+        <div class="card-icon" style="background:var(--red-bg)">
+          <svg viewBox="0 0 13 13" stroke="var(--red)"><path d="M6.5 2L1 11h11L6.5 2z"/><path d="M6.5 5.5v2.5M6.5 9.5v.5"/></svg>
+        </div>
+        <div><div class="card-title">Risk flagging</div><div class="card-sub">${(r.risks||[]).filter(r=>r.level==='high').length} high · ${(r.risks||[]).filter(r=>r.level==='medium').length} medium · ${(r.risks||[]).filter(r=>r.level==='low').length} low</div></div>
+      </div>
+      <div class="card-body">
+        ${(r.risks||[]).map(risk => `
+          <div class="risk-item ${risk.level}">
+            <span class="risk-badge">${risk.level.toUpperCase()}</span>
+            <div>
+              <div class="risk-text">${risk.description}</div>
+              ${risk.clause ? `<div class="risk-clause">"${risk.clause}"</div>` : ''}
+            </div>
+          </div>`).join('')}
+      </div>
+    </div>
+
+    <div class="result-card">
+      <div class="card-head">
+        <div class="card-icon" style="background:var(--surface2)">
+          <svg viewBox="0 0 13 13" stroke="var(--ink2)"><circle cx="4" cy="6.5" r="2"/><circle cx="9" cy="6.5" r="2"/><path d="M6 6.5h0"/></svg>
+        </div>
+        <div><div class="card-title">Party obligations</div><div class="card-sub">${(r.obligations||[]).length} obligations identified</div></div>
+      </div>
+      <div class="card-body">
+        ${(r.obligations||[]).map(o => `
+          <div class="obligation-item">
+            <span class="obligation-party ${o.is_primary ? 'party-a' : 'party-b'}">${o.party}</span>
+            <div class="obligation-text">${o.obligation}</div>
+          </div>`).join('')}
+      </div>
+    </div>
+
+    <div class="result-card">
+      <div class="card-head">
+        <div class="card-icon" style="background:var(--amber-bg)">
+          <svg viewBox="0 0 13 13" stroke="var(--amber)"><circle cx="6.5" cy="6.5" r="5"/><path d="M6.5 4v3M6.5 8.5v.5"/></svg>
+        </div>
+        <div><div class="card-title">Missing clauses</div><div class="card-sub">${(r.missing_clauses||[]).length} potentially absent</div></div>
+      </div>
+      <div class="card-body">
+        ${(r.missing_clauses||[]).map(m => `
+          <div class="missing-item">
+            <div class="missing-dot"></div>
+            <div>
+              <div class="missing-text">${m.clause}</div>
+              <div class="missing-why">${m.reason}</div>
+            </div>
+          </div>`).join('')}
+      </div>
+    </div>`;
+}
+</script>
+</body>
+</html>
